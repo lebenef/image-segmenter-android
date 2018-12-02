@@ -18,8 +18,11 @@ package pp.imagesegmenter;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.RectF;
 
 import org.tensorflow.Graph;
@@ -107,6 +110,73 @@ public class Deeplab {
             0x99e6beff      //tv
     };
 
+    private String name_object(int id) {
+        String result = "";
+        switch (id) {
+
+            case 1:
+                result = "aeroplane";    //
+                break;
+            case 2:
+                result = "bicycle";     //
+                break;
+            case 3:
+                result = "bird";      //
+                break;
+            case 4:
+                result = "boat";     //
+                break;
+            case 5:
+                result = "bottle";     //
+                break;
+            case 6:
+                result = "bus";     //
+                break;
+            case 7:
+                result = "car";   //
+                break;
+            case 8:
+                result = "cat";     //
+                break;
+            case 9:
+                result = "chair";     //
+                break;
+            case 10:
+                result = "cow";     //
+                break;
+            case 11:
+                result = "diningtable";     //
+                break;
+            case 12:
+                result = "dog";     //
+                break;
+            case 13:
+                result = "horse";     //
+                break;
+            case 14:
+                result = "motobike";     //
+                break;
+            case 15:
+                result = "person";    //
+                break;
+            case 16:
+                result = "pottedplant";    //
+                break;
+            case 17:
+                result = "sheep";    //
+                break;
+            case 18:
+                result = "sofa";    //
+                break;
+            case 19:
+                result = "train";    //
+                break;
+            case 20:
+                result = "tv";     //
+                break;
+        }
+        return result;
+    }
     private int sensorOrientation;
     private int width;
     private int height;
@@ -202,35 +272,51 @@ public class Deeplab {
     }
 
     private Bitmap createMask(int id, Matrix matrix, RectF rectF) {
-        int w = (int) rectF.width();
-        int h = (int) rectF.height();
+            int w = (int) rectF.width();
+            int h = (int) rectF.height();
 
-        int top = (int) rectF.top;
-        int left = (int) rectF.left;
+            int top = (int) rectF.top;
+            int left = (int) rectF.left;
 
-        Bitmap segBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        int tmpValues[] = new int[w * h];
+            Bitmap segBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            int tmpValues[] = new int[w * h];
 
-        while (!maskStack.empty()) {
-            Point point = maskStack.pop();
-            tmpValues[(point.y - top) * w + point.x - left] = colormap[id];
-        }
+            while (!maskStack.empty()) {
+                Point point = maskStack.pop();
+                tmpValues[(point.y - top) * w + point.x - left] = colormap[id];
+            }
 
-        segBitmap.setPixels(tmpValues, 0, w, 0, 0, w, h);
-        matrix.mapRect(rectF);
+            segBitmap.setPixels(tmpValues, 0, w, 0, 0, w, h);
+            matrix.mapRect(rectF);
 
-        Bitmap mask = Bitmap.createBitmap((int) rectF.width(), (int) rectF.height(), Bitmap.Config.ARGB_8888);
+            Bitmap mask = Bitmap.createBitmap((int) rectF.width(), (int) rectF.height(), Bitmap.Config.ARGB_8888);
 
-        Matrix maskMatrix = new Matrix();
-        ImageUtils.getTransformationMatrix(
-                (int) rectF.width(), (int) rectF.height(),
-                w, h,
-                sensorOrientation, false).invert(maskMatrix);
+            Matrix maskMatrix = new Matrix();
+            ImageUtils.getTransformationMatrix(
+                    (int) rectF.width(), (int) rectF.height(),
+                    w, h,
+                    sensorOrientation, false).invert(maskMatrix);
 
-        Canvas canvas = new Canvas(mask);
-        canvas.drawBitmap(segBitmap, maskMatrix, null);
+            Canvas canvas = new Canvas(mask);
+            canvas.drawBitmap(segBitmap, maskMatrix, null);
 
-        return mask;
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            // text color - #3D3D3D
+            paint.setColor(Color.rgb(255,255, 255));
+            // text size in pixels
+            paint.setTextSize((int) (12 * 5));
+            // text shadow
+            //paint.setShadowLayer(1f, 0f, 1f, Color.DKGRAY);
+
+            // draw text to the Canvas center
+            Rect bounds = new Rect();
+            paint.getTextBounds(name_object(id), 0, name_object(id).length(), bounds);
+            int x = (canvas.getWidth() / 2);
+            int y =  (int) ((canvas.getHeight() / 2) - ((paint.descent() + paint.ascent()) / 2)) ;
+
+            canvas.drawText(name_object(id), x , y , paint);
+
+            return mask;
     }
 
     private void floodFill(int initX, int initY, int val, RectF rectF) {
